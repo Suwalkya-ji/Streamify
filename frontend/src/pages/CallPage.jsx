@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
 import { getStreamToken } from "../lib/api";
@@ -37,9 +37,11 @@ const CallPage = () => {
 
   useEffect(() => {
     const initCall = async () => {
-      if (!tokenData?.token || !authUser || !callId) return;
+      if (!tokenData.token || !authUser || !callId) return;
 
       try {
+        console.log("Initializing Stream video client...");
+
         const user = {
           id: authUser._id,
           name: authUser.fullName,
@@ -53,7 +55,10 @@ const CallPage = () => {
         });
 
         const callInstance = videoClient.call("default", callId);
+
         await callInstance.join({ create: true });
+
+        console.log("Joined call successfully");
 
         setClient(videoClient);
         setCall(callInstance);
@@ -71,25 +76,20 @@ const CallPage = () => {
   if (isLoading || isConnecting) return <PageLoader />;
 
   return (
-    <div className="h-screen w-full bg-black flex flex-col">
-      {client && call ? (
-        <StreamVideo client={client}>
-          <StreamCall call={call}>
-            <CallContent />
-          </StreamCall>
-        </StreamVideo>
-      ) : (
-        <div className="flex flex-1 items-center justify-center text-center px-4">
-          <div className="max-w-md rounded-xl bg-base-200 p-6 shadow-lg">
-            <h2 className="text-xl font-semibold mb-2">
-              Unable to join call
-            </h2>
-            <p className="text-base-content/70">
-              Please refresh the page or try again later.
-            </p>
+    <div className="h-screen flex flex-col items-center justify-center">
+      <div className="relative">
+        {client && call ? (
+          <StreamVideo client={client}>
+            <StreamCall call={call}>
+              <CallContent />
+            </StreamCall>
+          </StreamVideo>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p>Could not initialize call. Please refresh or try again later.</p>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
@@ -97,26 +97,15 @@ const CallPage = () => {
 const CallContent = () => {
   const { useCallCallingState } = useCallStateHooks();
   const callingState = useCallCallingState();
+
   const navigate = useNavigate();
 
-  if (callingState === CallingState.LEFT) {
-    navigate("/");
-    return null;
-  }
+  if (callingState === CallingState.LEFT) return navigate("/");
 
   return (
     <StreamTheme>
-      {/* Video Area */}
-      <div className="flex flex-col h-full w-full">
-        <div className="flex-1 relative">
-          <SpeakerLayout />
-        </div>
-
-        {/* Controls */}
-        <div className="sticky bottom-0 z-50 bg-black/80 backdrop-blur-md">
-          <CallControls />
-        </div>
-      </div>
+      <SpeakerLayout />
+      <CallControls />
     </StreamTheme>
   );
 };

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams } from "react-router";
 import useAuthUser from "../hooks/useAuthUser";
 import { useQuery } from "@tanstack/react-query";
 import { getStreamToken } from "../lib/api";
@@ -33,7 +33,7 @@ const ChatPage = () => {
   const { data: tokenData } = useQuery({
     queryKey: ["streamToken"],
     queryFn: getStreamToken,
-    enabled: !!authUser,
+    enabled: !!authUser, // this will run only when authUser is available
   });
 
   useEffect(() => {
@@ -41,6 +41,8 @@ const ChatPage = () => {
       if (!tokenData?.token || !authUser) return;
 
       try {
+        console.log("Initializing stream chat client...");
+
         const client = StreamChat.getInstance(STREAM_API_KEY);
 
         await client.connectUser(
@@ -52,7 +54,12 @@ const ChatPage = () => {
           tokenData.token
         );
 
+        //
         const channelId = [authUser._id, targetUserId].sort().join("-");
+
+        // you and me
+        // if i start the chat => channelId: [myId, yourId]
+        // if you start the chat => channelId: [yourId, myId]  => [myId,yourId]
 
         const currChannel = client.channel("messaging", channelId, {
           members: [authUser._id, targetUserId],
@@ -88,33 +95,21 @@ const ChatPage = () => {
   if (loading || !chatClient || !channel) return <ChatLoader />;
 
   return (
-    <div className="h-[calc(100vh-4rem)] w-full bg-base-100">
+    <div className="h-[93vh]">
       <Chat client={chatClient}>
         <Channel channel={channel}>
-          <div className="relative h-full flex">
-            {/* Main Chat Window */}
-            <div className="flex-1 flex flex-col">
-              {/* Call Button */}
-              <div className="absolute top-3 right-3 z-20">
-                <CallButton handleVideoCall={handleVideoCall} />
-              </div>
-
-              <Window>
-                <ChannelHeader />
-                <MessageList />
-                <MessageInput focus />
-              </Window>
-            </div>
-
-            {/* Thread (Desktop only) */}
-            <div className="hidden lg:block w-[360px] border-l border-base-300">
-              <Thread />
-            </div>
+          <div className="w-full relative">
+            <CallButton handleVideoCall={handleVideoCall} />
+            <Window>
+              <ChannelHeader />
+              <MessageList />
+              <MessageInput focus />
+            </Window>
           </div>
+          <Thread />
         </Channel>
       </Chat>
     </div>
   );
 };
-
 export default ChatPage;
