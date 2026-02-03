@@ -32,7 +32,13 @@ app.use("/api/users", userRoutes);
 app.use("/api/chat", chatRoutes);
 
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-  connectDB();
-});
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection failed", err);
+    process.exit(1);
+  });
